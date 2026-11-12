@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Dashboard | Task List</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root { --primary-dark: #2c3e50; --accent-blue: #3498db; }
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        .navbar { background-color: var(--primary-dark); box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .main-card { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 2rem; margin-top: 2rem; border: none; }
+
+        /* Address Box Styling */
+        .address-box { font-size: 0.95rem; line-height: 1.4; color: #333; }
+        .address-highlight { background-color: #fff9db; border-left: 4px solid #fab005; padding: 10px; border-radius: 4px; }
+
+        /* Status Badges */
+        .status-badge { font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; padding: 6px 12px; }
+        .bg-scheduled { background-color: #cfe2ff; color: #084298; }
+        .bg-out_for_delivery { background-color: #fff3cd; color: #856404; }
+        .bg-delivered { background-color: #d1e7dd; color: #0f5132; }
+
+        .table thead th { background-color: #f8f9fa; text-transform: uppercase; font-size: 0.8rem; color: #777; border-bottom: 2px solid #eee; }
+        .btn-status { font-weight: 600; border-radius: 8px; transition: all 0.2s; }
+        .empty-state { padding: 4rem 2rem; color: #bdc3c7; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark sticky-top">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="#">
+            <i class="fas fa-shipping-fast text-info me-2"></i> GROCERY AGENT PORTAL
+        </a>
+        <div class="d-flex align-items-center">
+            <a th:href="@{/agent/history}" class="btn btn-sm btn-outline-success me-3">
+                <i class="fas fa-history me-1"></i> My History
+            </a>
+            <span class="text-white-50 me-3 d-none d-md-inline">Agent: <strong class="text-white" th:text="${agentName}">Agent</strong></span>
+            <a th:href="@{/logout}" class="btn btn-sm btn-outline-danger">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="main-card">
+        <div class="row align-items-center mb-4">
+            <div class="col-md-6">
+                <h3 class="fw-bold text-dark m-0">Assigned Deliveries</h3>
+                <p class="text-muted small">Manage your current active tasks.</p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <span class="badge bg-dark rounded-pill p-2 px-3">
+                    <i class="fas fa-calendar-alt me-1"></i> <span th:text="${#temporals.format(#temporals.createNow(), 'dd MMM yyyy')}">Date</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Customer</th>
+                    <th><i class="fas fa-map-marker-alt me-1"></i> Address</th>
+                    <th>Time Slot</th>
+                    <th>Status</th>
+                    <th class="text-center">Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="d : ${deliveries}"
+                    th:with="parts=${d.timeSlot != null ? #strings.arraySplit(d.timeSlot, '|') : null}">
+
+                    <td class="fw-bold" th:text="${d.order != null ? '#' + d.order.orderId : '#' + d.deliveryId}"></td>
+
+                    <td>
+                        <div class="fw-bold" th:text="${d.order != null and d.order.customer != null ? d.order.customer.username : 'Guest'}">Customer</div>
+                    </td>
+
+                    <td>
+                        <div class="address-box address-highlight">
+                            <span th:text="${d.deliveryAddress != null ? d.deliveryAddress : (d.order != null and d.order.customer != null ? d.order.customer.address : 'Address Not Provided')}"></span>
+                        </div>
+                    </td>
+
+                    <td>
+                        <i class="far fa-clock text-muted me-1"></i>
+                        <span th:text="${parts != null and #arrays.length(parts) >= 2 ? parts[1] : 'Anytime'}"></span>
+                    </td>
+
+                    <td>
+                        <span class="badge status-badge rounded-pill"
+                              th:classappend="${'bg-' + #strings.toLowerCase(d.deliveryStatus)}"
+                              th:text="${d.deliveryStatus}">
+                        </span>
+                    </td>
+
+                    <td class="text-center">
+                        <a th:if="${d.deliveryStatus.name() == 'SCHEDULED'}"
+                           th:href="@{/agent/status(id=${d.deliveryId}, s='OUT_FOR_DELIVERY')}"
+                           class="btn btn-sm btn-primary btn-status px-3">
+                            <i class="fas fa-play me-1 small"></i> Start Delivery
+                        </a>
+
+                        <a th:if="${d.deliveryStatus.name() == 'OUT_FOR_DELIVERY'}"
+                           th:href="@{/agent/status(id=${d.deliveryId}, s='DELIVERED')}"
+                           class="btn btn-sm btn-success btn-status px-3">
+                            <i class="fas fa-check me-1 small"></i> Complete
+                        </a>
+                    </td>
+                </tr>
+
+                <tr th:if="${#lists.isEmpty(deliveries)}">
+                    <td colspan="6" class="text-center empty-state">
+                        <i class="fas fa-tasks fa-3x mb-3"></i>
+                        <h5>No active assignments</h5>
+                        <p class="text-muted small">New tasks will appear here when assigned by the admin.</p>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

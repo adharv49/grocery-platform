@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Delivery History | Grocery Agent</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --primary-dark: #2c3e50; --success-green: #2ecc71; }
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', sans-serif; }
+        .navbar { background-color: var(--primary-dark); }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .table thead { background-color: #f8f9fa; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; border-bottom: 2px solid #dee2e6; }
+        .status-pill { font-size: 0.75rem; font-weight: 600; padding: 0.4rem 1rem; border: 1px solid #d1e7dd; }
+        .address-text { font-size: 0.9rem; color: #333; line-height: 1.4; }
+        .address-container { background-color: #fdfdfd; border-left: 3px solid #28a745; padding: 10px; border-radius: 0 4px 4px 0; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark mb-4 shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-bold" th:href="@{/agent/tasks}">
+            <i class="fas fa-arrow-left me-2"></i> BACK TO ACTIVE TASKS
+        </a>
+        <span class="navbar-text text-white">
+            <i class="fas fa-user-check me-1"></i> <strong th:text="${agentName}">Agent</strong>
+        </span>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="fw-bold m-0 text-dark"><i class="fas fa-history text-success me-2"></i> Completed Deliveries</h4>
+                <p class="text-muted small mb-0">History of all successfully completed orders.</p>
+            </div>
+            <span class="badge bg-success rounded-pill px-3 py-2" th:text="${#lists.size(history)} + ' Deliveries Total'">0 Total</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th><i class="fas fa-map-marker-alt me-1 text-danger"></i> Delivery Address</th>
+                    <th>Time Slot</th>
+                    <th>Date Completed</th>
+                    <th class="text-center">Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="d : ${history}"
+                    th:with="parts=${d.timeSlot != null ? #strings.arraySplit(d.timeSlot, '|') : null}">
+
+                    <td class="fw-bold text-primary" th:text="${d.order != null ? '#' + d.order.orderId : '#N/A'}"></td>
+
+                    <td>
+                        <div class="fw-bold" th:text="${d.order != null and d.order.customer != null ? d.order.customer.username : 'Guest'}">Customer</div>
+                    </td>
+
+                    <td>
+                        <div style="max-width: 300px;" class="address-container">
+                            <span class="address-text fw-medium"
+                                  th:text="${d.deliveryAddress != null ? d.deliveryAddress : (d.order?.customer?.address ?: 'No Address Stored')}">
+                            </span>
+                        </div>
+                    </td>
+
+                    <td>
+                        <span class="badge bg-light text-dark border fw-normal"
+                              th:text="${parts != null and #arrays.length(parts) >= 2 ? parts[1] : 'Anytime'}"></span>
+                    </td>
+
+                    <td>
+                        <div class="small fw-bold text-muted">
+                            <i class="far fa-calendar-check text-success me-1"></i>
+                            <span th:text="${d.deliveryDate != null ? #temporals.format(d.deliveryDate, 'dd MMM yyyy') : 'N/A'}"></span>
+                        </div>
+                    </td>
+
+                    <td class="text-center">
+                        <span class="badge bg-success status-pill rounded-pill text-uppercase">
+                            <i class="fas fa-check-circle me-1"></i> Delivered
+                        </span>
+                    </td>
+                </tr>
+
+                <tr th:if="${#lists.isEmpty(history)}">
+                    <td colspan="6" class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="fas fa-box-open fa-3x mb-3 text-light"></i>
+                            <h5>No history found</h5>
+                            <p class="small">Deliveries you complete will appear here permanently.</p>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

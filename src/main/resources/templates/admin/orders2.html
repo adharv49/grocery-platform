@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Order Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .table-container { background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 20px; }
+
+        /* Status Badges */
+        .status-badge { font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-PLACED { background-color: #cfe2ff !important; color: #084298 !important; }
+        .status-SCHEDULED { background-color: #e0cffc !important; color: #6610f2 !important; }
+        .status-OUT_FOR_DELIVERY { background-color: #fff3cd !important; color: #856404 !important; }
+        .status-DELIVERED { background-color: #d1e7dd !important; color: #0f5132 !important; }
+
+        .delivery-info { font-size: 0.85rem; color: #6c757d; border-left: 3px solid #dee2e6; padding-left: 8px; margin-top: 5px; }
+        .address-text { font-size: 0.9rem; font-weight: 500; display: block; max-width: 300px; }
+        /* Add this below .status-DELIVERED */
+        .status-CANCELLED {
+            background-color: #f8d7da !important;
+            color: #842029 !important;
+            border: 1px solid #f5c2c7;
+        }
+        .status-CANCELLATION_REQUESTED {
+            background-color: #fff3cd !important; /* Soft Yellow background */
+            color: #856404 !important;            /* Dark Brown/Gold text */
+            border: 1px solid #ffeeba;
+            animation: pulse-warning 2s infinite; /* Optional: adds a subtle blink */
+        }
+
+        @keyframes pulse-warning {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container">
+        <a class="navbar-brand fw-bold" th:href="@{/admin/dashboard}">GroceryMart Admin</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" th:href="@{/admin/dashboard}">Products</a></li>
+                <li class="nav-item"><a class="nav-link active" th:href="@{/admin/orders}">Orders</a></li>
+            </ul>
+            <div class="d-flex align-items-center">
+                <a th:href="@{/logout}" class="btn btn-outline-danger btn-sm">Logout</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-5">
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="fw-bold text-dark">Order Logistics</h2>
+            <p class="text-muted">Manage assignments and track delivery status.</p>
+        </div>
+        <span class="badge bg-secondary text-uppercase px-3 py-2"
+              th:text="${orders != null ? #lists.size(orders) : 0} + ' Total Orders'"></span>
+    </div>
+    <div th:if="${message}"
+         th:class="${'alert alert-' + (messageType != null ? messageType : 'info') + ' alert-dismissible fade show shadow-sm'}"
+         role="alert">
+        <i th:class="${messageType == 'danger' ? 'fas fa-exclamation-circle me-2' : 'fas fa-check-circle me-2'}"></i>
+        <span th:text="${message}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                <tr>
+                    <th>Order ID</th>
+                    <th>Customer & Destination</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th class="text-center">Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                <th:block th:if="${orders != null}">
+                    <tr th:each="order : ${orders}">
+                        <td class="fw-bold" th:text="${order != null ? '#' + order.orderId : '#N/A'}"></td>
+
+                        <td>
+                            <div class="fw-bold text-primary"
+                                 th:text="${order.customer != null ? order.customer.username : 'Guest'}">Customer</div>
+
+                            <div class="mt-1">
+                                <i class="fas fa-map-marker-alt text-danger me-1 small"></i>
+                                <span class="address-text" th:text="${not #lists.isEmpty(order.deliveries) ? order.deliveries[0].deliveryAddress :
+                                               (addressMap != null and addressMap.containsKey(order.orderId) ? addressMap.get(order.orderId) :
+                                               (order.customer != null ? order.customer.address : 'No Address'))}"></span>
+                            </div>
+
+                            <div th:if="${not #lists.isEmpty(order.deliveries)}" class="delivery-info">
+                                <i class="fas fa-user-tag me-1 small"></i>
+                                <span th:text="${order.deliveries[0].timeSlot}">Slot</span>
+                            </div>
+                        </td>
+
+                        <td class="fw-bold" th:text="${'₹' + order.totalAmount}">
+                            <div th:if="${order.payment != null}" class="mt-1">
+        <span th:classappend="${order.payment.paymentMethod == 'COD' ? 'bg-info-subtle text-info-emphasis' : 'bg-primary-subtle text-primary-emphasis'}"
+              class="badge rounded-pill border"
+              style="font-size: 0.7rem; padding: 4px 8px;">
+
+            <i th:class="${order.payment.paymentMethod == 'COD' ? 'fas fa-wallet me-1' : (order.payment.paymentMethod == 'UPI' ? 'fas fa-mobile-alt me-1' : 'fas fa-credit-card me-1')}"></i>
+
+            <span th:text="${order.payment.paymentMethod}">METHOD</span>
+        </span>
+                            </div>
+                        </td>
+                        <!--                        <td>-->
+                        <!--                            <span th:if="${order.status != null}"-->
+                        <!--                                  class="badge rounded-pill px-3 py-2 status-badge"-->
+                        <!--                                  th:classappend="${'status-' + order.status}"-->
+                        <!--                                  th:text="${order.status}"></span>-->
+                        <!--                            -->
+                        <!--                        </td>-->
+                        <td class="text-center">
+                            <div th:if="${order.status.name() == 'CANCELLATION_REQUESTED'}">
+                                <form th:action="@{/admin/orders/confirm-cancel}" method="post">
+                                    <input type="hidden" name="orderId" th:value="${order.orderId}" />
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="fas fa-exclamation-triangle"></i> Approve Cancellation
+                                    </button>
+                                </form>
+                            </div>
+
+                        </td>
+
+                        <td class="text-center">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    Action
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow">
+                                    <li th:if="${order.status != null and order.status.toString() == 'PLACED'}">
+                                        <button class="dropdown-item text-success fw-bold" data-bs-toggle="modal" th:data-bs-target="'#assignModal' + ${order.orderId}">
+                                            <i class="fas fa-calendar-check me-2"></i> Schedule Delivery
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" th:href="@{/admin/orders/details/{id}(id=${order.orderId})}">
+                                            <i class="fas fa-info-circle me-2 text-info"></i> View Details
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div th:if="${order.status != null and order.status.toString() == 'PLACED'}"
+                                 class="modal fade text-start" th:id="'assignModal' + ${order.orderId}" tabindex="-1">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <form th:action="@{/admin/orders/assign-delivery}" method="post">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title fw-bold">Schedule Order #<span th:text="${order.orderId}"></span></h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body p-4">
+                                                <input type="hidden" name="orderId" th:value="${order.orderId}">
+
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-bold small text-muted">DESTINATION:</label>
+                                                    <div class="p-2 border rounded bg-light small"
+                                                         th:text="${addressMap != null and addressMap.containsKey(order.orderId) ? addressMap.get(order.orderId) : (order.customer != null ? order.customer.address : 'N/A')}"></div>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-bold">Assign Agent</label>
+                                                    <select name="agentName" class="form-select" required>
+                                                        <option th:each="agent : ${agents}" th:value="${agent.username}" th:text="${agent.username}"></option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-bold">Time Slot</label>
+                                                    <select name="timeSlot" class="form-select" required>
+                                                        <option value="9AM-12PM">Morning (9AM - 12PM)</option>
+                                                        <option value="1PM-4PM">Afternoon (1PM - 4PM)</option>
+                                                        <option value="5PM-8PM">Evening (5PM - 8PM)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="submit" class="btn btn-primary w-100">Confirm Assignment</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </th:block>
+
+                <tr th:if="${orders == null or #lists.isEmpty(orders)}">
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
+                        <h5>No orders found.</h5>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

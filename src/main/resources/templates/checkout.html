@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Checkout | GroceryMart</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border-radius: 12px; border: none; }
+        .address-box { border: 2px dashed #0d6efd; background-color: #f0f7ff; border-radius: 8px; resize: none; }
+
+        /* Payment Selection Styling */
+        .payment-box {
+            border: 2px solid #dee2e6; border-radius: 12px; margin-bottom: 12px;
+            cursor: pointer; transition: 0.3s; background: #fff;
+        }
+        .payment-box.active { border-color: #0d6efd; background: #f0f7ff; }
+        .details-pane { max-height: 0; overflow: hidden; transition: 0.3s ease; opacity: 0; }
+        .active .details-pane { max-height: 200px; padding: 10px 15px; border-top: 1px solid #dee2e6; opacity: 1; }
+        .error-msg { color: #dc3545; font-size: 0.75rem; display: none; margin-top: 5px; font-weight: bold; }
+
+        .wallet-card { border: 2px solid #198754; background-color: #f0fff4; }
+    </style>
+</head>
+<body>
+
+<div class="container py-5">
+    <form th:action="@{/orders/place}" method="post" id="checkoutForm">
+        <div class="row g-4">
+            <div class="col-md-7">
+                <div class="card shadow-sm p-4">
+                    <h5 class="fw-bold mb-3"><i class="fas fa-map-marker-alt text-danger me-2"></i>Delivery Address</h5>
+                    <div class="mb-4">
+                        <textarea id="addressInput" name="addressLine1" class="form-control address-box p-3"
+                                  rows="3" readonly required th:text="${savedAddress}"></textarea>
+                        <button type="button" id="editBtn" class="btn btn-sm btn-outline-primary mt-2" onclick="enableAddressEdit()">
+                            <i class="fas fa-edit me-1"></i> Edit Address
+                        </button>
+                    </div>
+
+                    <div th:if="${userBalance != null && userBalance > 0}" class="card wallet-card mb-4 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1 fw-bold text-success">
+                                        <i class="fas fa-wallet me-2"></i>Apply Wallet Balance
+                                    </h6>
+                                    <p class="small text-muted mb-0">
+                                        Available: <strong>₹<span th:text="${userBalance}">0.00</span></strong>
+                                    </p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="useWallet" id="walletSwitch"
+                                           style="transform: scale(1.4); cursor: pointer;" onchange="updateTotalDisplay()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="walletPaidMessage" class="alert alert-success d-none shadow-sm border-0">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle fa-2x me-3"></i>
+                            <div>
+                                <h6 class="mb-0 fw-bold">Fully Covered!</h6>
+                                <small>Your wallet balance covers the total amount. No extra payment required.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="paymentSection">
+                        <hr>
+                        <h5 class="fw-bold mb-3">Payment Method</h5>
+                        <input type="hidden" name="paymentMethod" id="methodInput" value="COD">
+
+                        <div class="payment-box active" id="box-COD" onclick="selectMethod('COD')">
+                            <div class="p-3 d-flex align-items-center">
+                                <i class="fas fa-truck text-success me-3 fa-lg"></i>
+                                <div><div class="fw-bold">Cash on Delivery</div><small class="text-muted">Pay at doorstep</small></div>
+                            </div>
+                        </div>
+
+                        <div class="payment-box" id="box-UPI" onclick="selectMethod('UPI')">
+                            <div class="p-3 d-flex align-items-center">
+                                <i class="fas fa-mobile-alt text-primary me-3 fa-lg"></i>
+                                <div><div class="fw-bold">UPI Transfer</div><small class="text-muted">Pay via PhonePe/GPay/Paytm</small></div>
+                            </div>
+                            <div class="details-pane" onclick="event.stopPropagation()">
+                                <input type="text" id="upiVpa" class="form-control" placeholder="user@sbi, user@hdfc, or user@icici">
+                                <div id="upiError" class="error-msg">Please enter a valid UPI ID</div>
+                            </div>
+                        </div>
+
+                        <div class="payment-box" id="box-CARD" onclick="selectMethod('CARD')">
+                            <div class="p-3 d-flex align-items-center">
+                                <i class="fas fa-credit-card text-dark me-3 fa-lg"></i>
+                                <div><div class="fw-bold">Credit / Debit Card</div><small class="text-muted">Secure Card Payment</small></div>
+                            </div>
+                            <div class="details-pane" onclick="event.stopPropagation()">
+                                <input type="text" id="cardNum" class="form-control mb-2" placeholder="Card Number" maxlength="16">
+                                <div id="cardError" class="error-msg">Please check your card details</div>
+                                <div class="row g-2">
+                                    <div class="col-7">
+                                        <input type="text" id="cardExpiry" class="form-control" placeholder="MM/YY" maxlength="5">
+                                    </div>
+                                    <div class="col-5">
+                                        <input type="password" id="cardCvv" class="form-control" placeholder="CVV" maxlength="3">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary btn-lg w-100 mt-4 fw-bold shadow" type="button" onclick="validateAndSubmit()">
+                        Place Order (₹<span id="btnTotalText" th:text="${totalAmount}">0.00</span>)
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-md-5">
+                <div class="card shadow-sm p-4">
+                    <h5 class="fw-bold mb-3 text-muted">Order Summary</h5>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Items Subtotal</span>
+                        <span>₹<span th:text="${totalAmount}">0.00</span></span>
+                    </div>
+
+                    <div id="walletRow" class="d-flex justify-content-between text-success mb-2 d-none">
+                        <span>Wallet Deduction</span>
+                        <span id="appliedBalanceText">-₹0.00</span>
+                    </div>
+
+                    <hr>
+                    <div class="d-flex justify-content-between fs-4 fw-bold text-primary">
+                        <span>To Pay</span>
+                        <span id="finalTotalDisplay" th:text="'₹' + ${totalAmount}"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+
+
+<script th:inline="javascript">
+    function enableAddressEdit() {
+        const input = document.getElementById("addressInput");
+        input.readOnly = false;
+        input.style.borderStyle = "solid";
+        input.focus();
+    }
+
+    function selectMethod(method) {
+        // Only allow selection if the box is not disabled
+        const box = document.getElementById('box-' + method);
+        if (box.style.pointerEvents === 'none') return;
+
+        document.querySelectorAll('.payment-box').forEach(el => el.classList.remove('active'));
+        box.classList.add('active');
+        document.getElementById('methodInput').value = method;
+    }
+
+    function updateTotalDisplay() {
+        const originalTotal = parseFloat(/*[[${totalAmount}]]*/ 0);
+        const walletBalance = parseFloat(/*[[${userBalance != null ? userBalance : 0}]]*/ 0);
+        const isWalletUsed = document.getElementById('walletSwitch')?.checked;
+
+        const paymentSection = document.getElementById('paymentSection');
+        const walletPaidMsg = document.getElementById('walletPaidMessage');
+        const finalDisplay = document.getElementById('finalTotalDisplay');
+        const walletRow = document.getElementById('walletRow');
+        const appliedText = document.getElementById('appliedBalanceText');
+        const btnTotalText = document.getElementById('btnTotalText');
+        const methodInput = document.getElementById('methodInput');
+        const boxCOD = document.getElementById('box-COD');
+
+        if (isWalletUsed) {
+            let deduction = Math.min(originalTotal, walletBalance);
+            let newTotal = originalTotal - deduction;
+
+            // UI Update for Summary
+            walletRow.classList.remove('d-none');
+            appliedText.innerText = "-₹" + deduction.toFixed(2);
+            finalDisplay.innerText = "₹" + newTotal.toFixed(2);
+            btnTotalText.innerText = newTotal.toFixed(2);
+
+            if (newTotal <= 0) {
+                // Fully covered by wallet
+                paymentSection.style.display = 'none';
+                walletPaidMsg.classList.remove('d-none');
+                methodInput.value = "WALLET";
+            } else {
+                // Partial payment required
+                paymentSection.style.display = 'block';
+                walletPaidMsg.classList.add('d-none');
+
+                // 🎯 Disable COD for partial payments
+                boxCOD.style.opacity = "0.5";
+                boxCOD.style.pointerEvents = "none";
+                boxCOD.classList.remove('active');
+                boxCOD.querySelector('.text-muted').innerText = "Not available with partial wallet use";
+
+                // Auto-switch away from COD if it was selected
+                if (methodInput.value === 'COD' || methodInput.value === 'WALLET') {
+                    selectMethod('UPI');
+                }
+            }
+        } else {
+            // 🎯 Reset UI when Wallet is NOT used
+            walletRow.classList.add('d-none');
+            paymentSection.style.display = 'block';
+            walletPaidMsg.classList.add('d-none');
+
+            // Re-enable COD
+            boxCOD.style.opacity = "1";
+            boxCOD.style.pointerEvents = "auto";
+            boxCOD.querySelector('.text-muted').innerText = "Pay at doorstep";
+
+            finalDisplay.innerText = "₹" + originalTotal.toFixed(2);
+            btnTotalText.innerText = originalTotal.toFixed(2);
+
+            // Reset to default method if it was WALLET
+            if (methodInput.value === 'WALLET') {
+                selectMethod('COD');
+            }
+        }
+    }
+
+    function validateAndSubmit() {
+        const method = document.getElementById('methodInput').value;
+        const finalTotal = parseFloat(document.getElementById('btnTotalText').innerText);
+        let valid = true;
+
+        document.querySelectorAll('.error-msg').forEach(e => e.style.display = 'none');
+
+        if (finalTotal > 0) {
+            if (method === 'UPI') {
+                const upi = document.getElementById('upiVpa').value;
+                const upiRegex = /^[\w.-]+@(sbi|hdfc|icici)$/;
+
+            if (!upiRegex.test(upi)) {
+                const errorEl = document.getElementById('upiError');
+                errorEl.innerText = "Only @sbi, @hdfc, or @icici handles are accepted.";
+                errorEl.style.display = 'block';
+                valid = false;
+            }
+                if (!upi.includes('@')) {
+                    document.getElementById('upiError').style.display = 'block';
+                    valid = false;
+                }
+            } else if (method === 'CARD') {
+
+                const cardNum = document.getElementById('cardNum').value;
+                const expiry = document.getElementById('cardExpiry').value;
+                const cvv = document.getElementById('cardCvv').value;
+                const cardError = document.getElementById('cardError');
+                if (cardNum.length < 16|| isNaN(cardNum)) {
+                    cardError.innerText = "Please enter a valid 16-digit card number.";
+                    cardError.style.display = 'block';
+                    valid = false;
+                }
+                const expiryRegex = /^(0[1-9]|1[0-2])\/?([0-9]{2})$/;
+                const match = expiry.match(expiryRegex);
+
+                if (!match) {
+                    cardError.innerText = "Invalid Expiry format. Use MM/YY.";
+                    cardError.style.display = 'block';
+                    valid = false;
+                }
+                else {
+                // Check if card is expired
+                const inputMonth = parseInt(match[1]);
+                const inputYear = parseInt("20" + match[2]); // Convert YY to 20YY
+                const now = new Date();
+                const currentMonth = now.getMonth() + 1; // getMonth is 0-indexed
+                const currentYear = now.getFullYear();
+
+                if (inputYear < currentYear || (inputYear === currentYear && inputMonth < currentMonth)) {
+                    cardError.innerText = "This card has expired.";
+                    cardError.style.display = 'block';
+                    valid = false;
+                    }
+                }
+                if (cvv.length < 3 || isNaN(cvv)) {
+                cardError.innerText = "Invalid CVV.";
+                cardError.style.display = 'block';
+                valid = false;
+                }
+            }
+            else if (method === 'COD' && document.getElementById('walletSwitch').checked) {
+                // Extra safety check
+                alert("Partial wallet payments are not allowed with COD.");
+                valid = false;
+            }
+        }
+
+        if (valid) document.getElementById('checkoutForm').submit();
+    }
+</script>
+</body>
+</html>

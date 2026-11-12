@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Products | GroceryMart</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <style>
+        body { background-color: #f8f9fa; scroll-behavior: smooth; }
+        .card-img-top { width: 100%; height: 180px; object-fit: cover; transition: transform 0.3s ease; }
+        .card:hover .card-img-top { transform: scale(1.05); }
+        .card { overflow: hidden; border: none; border-radius: 12px; }
+        .price-tag { font-weight: 700; color: #198754; font-size: 1.2rem; }
+        .navbar-brand { font-weight: 800; letter-spacing: -0.5px; }
+
+        .category-tile {
+            cursor: pointer; transition: all 0.3s ease; border: 2px solid transparent;
+            min-width: 130px; text-align: center; display: flex;
+            flex-direction: column; align-items: center; justify-content: center; flex: 1;
+        }
+        .category-tile:hover { transform: translateY(-5px); }
+        .category-tile.active { border-color: #198754; background-color: #e8f5e9 !important; }
+        .cat-icon { width: 50px; height: 50px; object-fit: contain; margin-bottom: 8px; }
+        .category-scroll-container { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
+
+        .category-header {
+            padding: 10px 0; border-bottom: 2px solid #e9ecef; margin-bottom: 20px;
+            text-transform: uppercase; letter-spacing: 1px; color: #495057; font-weight: 700;
+        }
+
+        .out-of-stock-card { position: relative; opacity: 0.7; }
+        .out-of-stock-badge {
+            position: absolute; top: 10px; left: 10px; background-color: rgba(220, 53, 69, 0.9);
+            color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem;
+            font-weight: bold; z-index: 2; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+<div th:if="${cartMessage}" class="container mt-3 fixed-top" style="z-index: 2000; max-width: 500px;">
+    <div id="statusAlert"
+         th:classappend="${messageType == 'success' ? 'alert-success' : 'alert-danger'}"
+         class="alert alert-dismissible fade show shadow-lg border-0 d-flex align-items-center"
+         role="alert">
+
+        <i th:classappend="${messageType == 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"
+           class="fas me-2 fs-5"></i>
+
+        <div class="flex-grow-1">
+            <span th:text="${cartMessage}">Message goes here</span>
+        </div>
+
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+</div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+    <div class="container">
+        <a class="navbar-brand" th:href="@{/}"><i class="fas fa-leaf text-success me-2"></i>GroceryMart</a>
+
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <div class="d-flex mx-auto w-50">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 rounded-start-pill ps-3"><i class="fas fa-search text-muted"></i></span>
+                    <input class="form-control border-start-0 ps-0 rounded-end-pill" type="search" id="productSearch" placeholder="Search products...">
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center">
+                <div th:if="${isAuthenticated}" class="d-flex align-items-center">
+                    <a th:href="@{/profile}" class="btn btn-success btn-sm me-2 rounded-pill px-3">
+                        <i class="fas fa-user-circle me-1"></i> My Profile
+                    </a>
+                    <form th:action="@{/logout}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-outline-light btn-sm rounded-pill">Logout</button>
+                    </form>
+                </div>
+                <div th:if="${!isAuthenticated}">
+                    <a class="btn btn-outline-light btn-sm me-2 px-3" th:href="@{/login}">Login</a>
+                    <a class="btn btn-success btn-sm px-3" th:href="@{/register}">Sign Up</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<header class="container my-4">
+    <div class="row align-items-center">
+        <div class="col-md-6">
+            <h1 class="h2 fw-bold mb-0">Product Catalog</h1>
+        </div>
+        <div class="col-md-6 text-md-end mt-3 mt-md-0" th:if="${isAuthenticated}">
+            <a class="btn btn-warning shadow-sm me-2" th:href="@{/cart}"><i class="fas fa-shopping-cart me-1"></i> My Cart</a>
+            <a th:href="@{/orders/history}" class="btn btn-outline-primary shadow-sm"><i class="fas fa-history me-1"></i> Orders</a>
+        </div>
+    </div>
+</header>
+
+<section class="container mb-5">
+    <div class="p-4 bg-white rounded shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="fw-bold text-secondary small text-uppercase">Strict Filter</span>
+            <select id="categoryFilter" class="form-select w-auto border-0 fw-bold text-success" style="cursor:pointer;">
+                <option value="ALL">ALL</option>
+                <option value="FRUITS">FRUITS</option>
+                <option value="VEGETABLES">VEGETABLES</option>
+                <option value="DAIRY">DAIRY</option>
+                <option value="BAKERY">BAKERY</option>
+            </select>
+        </div>
+        <div class="category-scroll-container">
+            <div class="category-tile p-3 bg-light rounded-3 shadow-sm" data-cat="FRUITS">
+                <img src="https://cdn-icons-png.flaticon.com/512/3194/3194591.png" class="cat-icon" alt="Fruits"><div class="small fw-bold">FRUITS</div>
+            </div>
+            <div class="category-tile p-3 bg-light rounded-3 shadow-sm" data-cat="VEGETABLES">
+                <img src="https://cdn-icons-png.flaticon.com/512/2329/2329865.png" class="cat-icon" alt="Veggie"><div class="small fw-bold">VEGGIE</div>
+            </div>
+            <div class="category-tile p-3 bg-light rounded-3 shadow-sm" data-cat="DAIRY">
+                <img src="https://cdn-icons-png.flaticon.com/512/2674/2674486.png" class="cat-icon" alt="Dairy"><div class="small fw-bold">DAIRY</div>
+            </div>
+            <div class="category-tile p-3 bg-light rounded-3 shadow-sm" data-cat="BAKERY">
+                <img src="https://cdn-icons-png.flaticon.com/512/3014/3014534.png" class="cat-icon" alt="Bakery"><div class="small fw-bold">BAKERY</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<main class="container my-4">
+    <div th:each="catName : ${ {'FRUITS', 'VEGETABLES', 'DAIRY', 'BAKERY'} }" th:id="${catName}" class="category-section mb-5">
+        <h3 class="category-header"><i class="fas fa-arrow-circle-right text-success me-2"></i> <span th:text="${catName}">CATEGORY</span></h3>
+        <div class="row g-4">
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3 product-item" th:each="product : ${products}" th:if="${product.category == catName}" th:attr="data-name=${product.productName}">
+                <div class="card h-100 shadow-sm border-0" th:classappend="${product.stockQuantity == 0} ? 'out-of-stock-card'">
+                    <div th:if="${product.stockQuantity == 0}" class="out-of-stock-badge">OUT OF STOCK</div>
+                    <img class="card-img-top" th:src="@{'/images/products/' + ${product.productId} + '.jpg'}" th:alt="${product.productName}" />
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title fw-bold" th:text="${product.productName}">Name</h5>
+                        <p class="price-tag">₹<span th:text="${product.price}">0.00</span></p>
+                        <div class="mt-auto">
+                            <div th:if="${isAuthenticated}">
+                                <div class="d-flex align-items-center mb-3">
+                                    <label class="small fw-bold me-2">QTY:</label>
+                                    <input type="number" th:id="'qty' + ${product.productId}" value="1" min="1" max="5" class="form-control form-control-sm text-center w-50" />
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <div class="btn-group">
+                                        <form th:action="@{/cart/buyNow}" method="post" class="w-50">
+                                            <input type="hidden" name="productId" th:value="${product.productId}" />
+                                            <input type="hidden" name="quantity" value="1" th:id="'buyQty' + ${product.productId}"/>
+                                            <button type="submit" class="btn btn-primary btn-sm w-100 rounded-start" th:disabled="${product.stockQuantity == 0}">Buy</button>
+                                        </form>
+                                        <form th:action="@{/cart/add}" method="post" class="w-50">
+                                            <input type="hidden" name="productId" th:value="${product.productId}" />
+                                            <input type="hidden" name="quantity" value="1" th:id="'hiddenQty' + ${product.productId}"/>
+                                            <button type="submit" class="btn btn-success btn-sm w-100 rounded-end" th:disabled="${product.stockQuantity == 0}">Add</button>
+                                        </form>
+                                    </div>
+                                    <a class="btn btn-light btn-sm text-muted" th:href="@{/products/{id}(id=${product.productId})}">View Details</a>
+                                </div>
+                            </div>
+
+                            <div th:if="${!isAuthenticated}" class="d-grid gap-2">
+                                <a th:href="@{/login}" class="btn btn-outline-success btn-sm rounded-pill">
+                                    <i class="fas fa-lock me-1"></i> Login to Buy
+                                </a>
+                                <a class="btn btn-light btn-sm text-muted" th:href="@{/products/{id}(id=${product.productId})}">
+                                    <i class="fas fa-eye me-1"></i> View Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+    const alertElement = document.getElementById('statusAlert');
+
+    if (alertElement) {
+        // Initialize Bootstrap Alert
+        const bsAlert = new bootstrap.Alert(alertElement);
+
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            // Check if the element still exists (user might have clicked close already)
+            if (document.getElementById('statusAlert')) {
+                bsAlert.close();
+            }
+        }, 3000);
+    }
+});
+
+    (function () {
+        const searchInput = document.getElementById('productSearch');
+        const categoryFilter = document.getElementById('categoryFilter');
+        const sections = document.querySelectorAll('.category-section');
+        const tiles = document.querySelectorAll('.category-tile');
+
+        function applyFilters() {
+            const query = (searchInput.value || "").toLowerCase();
+            const selectedCat = categoryFilter.value.toUpperCase();
+
+            sections.forEach(section => {
+                const sectionCat = section.id.toUpperCase();
+                let hasVisibleProduct = false;
+                const catMatches = (selectedCat === 'ALL' || selectedCat === sectionCat);
+
+                if (!catMatches) {
+                    section.style.display = 'none';
+                } else {
+                    section.querySelectorAll('.product-item').forEach(item => {
+                        const name = item.getAttribute('data-name').toLowerCase();
+                        const searchMatches = name.includes(query);
+                        item.style.display = searchMatches ? '' : 'none';
+                        if (searchMatches) hasVisibleProduct = true;
+                    });
+                    section.style.display = hasVisibleProduct ? '' : 'none';
+                }
+            });
+        }
+
+        tiles.forEach(tile => {
+            tile.addEventListener('click', () => {
+                const catId = tile.getAttribute('data-cat');
+                categoryFilter.value = 'ALL';
+                applyFilters();
+                const target = document.getElementById(catId);
+                if (target) {
+                    const navHeight = 90;
+                    const position = target.getBoundingClientRect().top + window.pageYOffset - navHeight;
+                    window.scrollTo({ top: position, behavior: 'smooth' });
+                }
+                tiles.forEach(t => t.classList.remove('active'));
+                tile.classList.add('active');
+            });
+        });
+
+        categoryFilter.addEventListener('change', applyFilters);
+        searchInput.addEventListener('input', applyFilters);
+
+        // Qty Sync Logic for both Buy and Add forms
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const pid = e.target.id.replace('qty', '');
+                const val = Math.max(1, Math.min(5, e.target.value));
+                e.target.value = val;
+
+                const hiddenAdd = document.getElementById('hiddenQty' + pid);
+                const hiddenBuy = document.getElementById('buyQty' + pid);
+                if (hiddenAdd) hiddenAdd.value = val;
+                if (hiddenBuy) hiddenBuy.value = val;
+            });
+        });
+    })();
+</script>
+</body>
+</html>

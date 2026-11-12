@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard - Inventory</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .navbar-brand { font-weight: bold; letter-spacing: 1px; }
+        .main-content { padding: 40px 0; }
+        .form-section { background: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #eef2f1; }
+
+        /* 🛠️ Explicitly defining colors with !important to ensure Bootstrap doesn't overwrite them */
+        .badge-available { background-color: #d1e7dd !important; color: #0f5132 !important; }
+        .badge-out { background-color: #f8d7da !important; color: #842029 !important; }
+
+        .table-container { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container">
+        <a class="navbar-brand" href="/admin/dashboard">ADMIN PANEL</a>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link active" href="/admin/dashboard">Manage Products</a></li>
+                <li class="nav-item"><a class="nav-link" href="/admin/orders">View Orders</a></li>
+            </ul>
+            <div class="d-flex align-items-center">
+                <span class="text-light me-3 small">Logged in: <strong th:text="${adminName}">Admin</strong></span>
+                <a href="/logout" class="btn btn-outline-danger btn-sm">Logout</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container main-content">
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold">Inventory Management</h2>
+            <p class="text-muted">Add, update, or remove products from the database.</p>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h5 class="mb-4 text-primary fw-bold" th:text="${product.productId != null} ? '✏️ Edit Existing Product' : '➕ Register New Product'">
+            Add New Product
+        </h5>
+
+        <form th:action="@{/admin/products/save}" th:object="${product}" method="post"
+              enctype="multipart/form-data">
+            <input type="hidden" th:field="*{productId}">
+
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Product Image (Jpg)</label>
+                    <input type="file" name="productImage" class="form-control" accept="image/jpeg">
+                    <small class="text-muted">Image will be saved as <span th:text="${product.productId != null ? product.productId + '.jpg' : 'new_id.jpg'}"></span></small>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Product Name</label>
+                    <input type="text" th:field="*{productName}" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Category</label>
+                    <input type="text" th:field="*{category}" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Price ($)</label>
+                    <input type="number" step="0.01" min="0.01" th:field="*{price}" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Quantity</label>
+                    <input type="number" id="quantityInput" min="0" th:field="*{stockQuantity}" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Inventory Status</label>
+                    <select id="statusSelect" th:field="*{status}" class="form-select">
+                        <option value="AVAILABLE">AVAILABLE</option>
+                        <option value="OUT_OF_STOCK">OUT OF STOCK</option>
+                    </select>
+                </div>
+                <div class="col-md-8 d-flex align-items-end justify-content-end gap-2">
+                    <a th:if="${product.productId != null}" href="/admin/dashboard" class="btn btn-light border px-4">Cancel</a>
+                    <button type="submit" class="btn btn-primary px-5" th:text="${product.productId != null} ? 'Update Product' : 'Save Product'">Save Product</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+            <tr>
+                <th class="ps-4">ID</th>
+                <th>Product Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th class="text-center">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${products}">
+                <td class="ps-4 text-muted" th:text="${p.productId}">1</td>
+                <td class="fw-bold" th:text="${p.productName}">Name</td>
+                <td th:text="${p.category}">Category</td>
+                <td class="text-primary fw-semibold" th:text="${'$' + p.price}">$0.00</td>
+                <td th:text="${p.stockQuantity}">0</td>
+                <td>
+                        <span class="badge rounded-pill"
+                              th:classappend="${p.status.toString() == 'AVAILABLE'} ? 'badge-available' : 'badge-out'"
+                              th:text="${p.status}">
+                            STATUS
+                        </span>
+                </td>
+                <td class="text-center pe-3">
+                    <a th:href="@{/admin/products/edit/{id}(id=${p.productId})}" class="btn btn-sm btn-outline-primary me-1">Edit</a>
+                    <a th:href="@{/admin/products/delete/{id}(id=${p.productId})}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this product?')">Delete</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    const qtyInput = document.getElementById('quantityInput');
+    const statusSelect = document.getElementById('statusSelect');
+
+    // Automatically toggle dropdown based on quantity typing
+    qtyInput.addEventListener('input', function() {
+        if (parseInt(this.value) <= 0 || this.value === "") {
+            statusSelect.value = 'OUT_OF_STOCK';
+        } else {
+            statusSelect.value = 'AVAILABLE';
+        }
+    });
+</script>
+
+</body>
+</html>

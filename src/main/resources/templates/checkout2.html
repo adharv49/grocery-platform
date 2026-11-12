@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Checkout | GroceryMart</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        body { background-color: #f8f9fa; }
+        .card { border-radius: 12px; border: none; }
+        .address-box { border: 2px dashed #0d6efd; background-color: #f0f7ff; border-radius: 8px; resize: none; }
+
+        /* Payment Selection Styling */
+        .payment-box {
+            border: 2px solid #dee2e6; border-radius: 12px; margin-bottom: 12px;
+            cursor: pointer; transition: 0.3s; background: #fff;
+        }
+        .payment-box.active { border-color: #0d6efd; background: #f0f7ff; }
+        .details-pane { max-height: 0; overflow: hidden; transition: 0.3s ease; opacity: 0; }
+        .active .details-pane { max-height: 200px; padding: 10px 15px; border-top: 1px solid #dee2e6; opacity: 1; }
+        .error-msg { color: #dc3545; font-size: 0.75rem; display: none; margin-top: 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container py-5">
+    <form th:action="@{/orders/place}" method="post" id="checkoutForm">
+        <div class="row g-4">
+            <div class="col-md-7">
+                <div class="card shadow-sm p-4">
+                    <h5 class="fw-bold mb-3">Delivery Address</h5>
+                    <div class="mb-4">
+                        <textarea id="addressInput" name="addressLine1" class="form-control address-box p-3"
+                                  rows="3" readonly required th:text="${savedAddress}"></textarea>
+                        <button type="button" id="editBtn" class="btn btn-sm btn-outline-primary mt-2" onclick="enableAddressEdit()">
+                            <i class="fas fa-edit me-1"></i> Edit Address
+                        </button>
+                    </div>
+
+
+
+
+                    <div th:if="${userBalance > 0}" class="card border-success bg-light mb-4 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1 fw-bold text-success">
+                                        <i class="fas fa-wallet me-2"></i>Apply Wallet Balance
+                                    </h6>
+                                    <p class="small text-muted mb-0">
+                                        You have <strong>₹<span th:text="${userBalance}">0.00</span></strong> available.
+                                    </p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="useWallet" id="walletSwitch"
+                                           style="transform: scale(1.4); cursor: pointer;" onchange="updateTotalDisplay()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+
+                    <hr>
+
+                    <h5 class="fw-bold mb-3">Payment Method</h5>
+                    <input type="hidden" name="paymentMethod" id="methodInput" value="COD">
+
+                    <div class="payment-box active" id="box-COD" onclick="selectMethod('COD')">
+                        <div class="p-3 d-flex align-items-center">
+                            <i class="fas fa-truck text-success me-3 fa-lg"></i>
+                            <div><div class="fw-bold">Cash on Delivery</div><small class="text-muted">Pay at doorstep</small></div>
+                        </div>
+                    </div>
+
+                    <div class="payment-box" id="box-UPI" onclick="selectMethod('UPI')">
+                        <div class="p-3 d-flex align-items-center">
+                            <i class="fas fa-mobile-alt text-primary me-3 fa-lg"></i>
+                            <div><div class="fw-bold">UPI Transfer</div><small class="text-muted">Pay via PhonePe/GPay/Paytm</small></div>
+                        </div>
+                        <div class="details-pane" onclick="event.stopPropagation()">
+                            <input type="text" id="upiVpa" class="form-control" placeholder="example@upi">
+                            <div id="upiError" class="error-msg">Please enter a valid UPI ID</div>
+                        </div>
+                    </div>
+
+                    <div class="payment-box" id="box-CARD" onclick="selectMethod('CARD')">
+                        <div class="p-3 d-flex align-items-center">
+                            <i class="fas fa-credit-card text-dark me-3 fa-lg"></i>
+                            <div><div class="fw-bold">Credit / Debit Card</div><small class="text-muted">Secure Card Payment</small></div>
+                        </div>
+                        <div class="details-pane" onclick="event.stopPropagation()">
+                            <input type="text" id="cardNum" class="form-control mb-2" placeholder="Card Number" maxlength="16">
+                            <div id="cardError" class="error-msg">Enter 16-digit card number</div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary btn-lg w-100 mt-4 fw-bold" type="button" onclick="validateAndSubmit()">
+                        Place Order (₹<span th:text="${totalAmount}">0.00</span>)
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-md-5">
+                <div class="card shadow-sm p-4">
+                    <h5 class="fw-bold mb-3 text-muted">Order Summary</h5>
+                    <div class="d-flex justify-content-between fs-4 fw-bold text-primary">
+                        <span>Grand Total</span>
+                        <span th:text="'₹' + ${totalAmount}"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    function enableAddressEdit() {
+        const input = document.getElementById("addressInput");
+        input.readOnly = false;
+        input.style.borderStyle = "solid";
+        input.focus();
+    }
+
+    function selectMethod(method) {
+        document.querySelectorAll('.payment-box').forEach(el => el.classList.remove('active'));
+        document.getElementById('box-' + method).classList.add('active');
+        document.getElementById('methodInput').value = method;
+    }
+
+    function validateAndSubmit() {
+        const method = document.getElementById('methodInput').value;
+        let valid = true;
+
+        // Hide errors
+        document.querySelectorAll('.error-msg').forEach(e => e.style.display = 'none');
+
+        if (method === 'UPI') {
+            const upi = document.getElementById('upiVpa').value;
+            if (!upi.includes('@')) { document.getElementById('upiError').style.display = 'block'; valid = false; }
+        } else if (method === 'CARD') {
+            const card = document.getElementById('cardNum').value;
+            if (card.length < 16) { document.getElementById('cardError').style.display = 'block'; valid = false; }
+        }
+
+        if (valid) document.getElementById('checkoutForm').submit();
+    }
+</script>
+</body>
+</html>

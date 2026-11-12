@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <title>Shopping Cart</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        .product-img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-right: 15px;
+        }
+        .cart-title-row {
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container my-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-shopping-cart me-2 text-primary"></i>Your Shopping Cart</h2>
+
+        <div class="btn-group" role="group">
+            <a th:href="@{/products}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Continue Shopping
+            </a>
+        </div>
+    </div>
+
+    <div th:if="${cartMessage}"
+         class="alert alert-dismissible fade show"
+         th:classappend="${messageType == 'error' ? 'alert-danger' : (messageType == 'info' ? 'alert-info' : 'alert-success')}"
+         role="alert">
+        <span th:text="${cartMessage}">Message goes here</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <div th:if="${cartItems.isEmpty()}" class="alert alert-info py-4 text-center" role="alert">
+        <h4 class="alert-heading">Your cart is empty!</h4>
+        <p>It looks like you haven't added anything yet. <a th:href="@{/products}" class="alert-link">Start browsing our products.</a></p>
+    </div>
+
+    <div th:if="${!cartItems.isEmpty()}" class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Product</th>
+                            <th class="text-center">Price</th>
+                            <th class="text-center" style="width: 160px;">Quantity</th>
+                            <th class="text-center">Subtotal</th>
+                            <th class="text-center">Remove</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="item : ${cartItems}">
+                            <td class="cart-title-row ps-3">
+                                <img class="product-img"
+                                     th:src="@{'/images/products/' + ${item.product.productId} + '.jpg'}"
+                                     th:alt="${item.product.productName}" />
+                                <span th:text="${item.product.productName}">Product Name</span>
+                            </td>
+
+                            <td class="text-center">
+                                <span th:text="'₹' +${#numbers.formatDecimal(item.product.price, 1, 'COMMA', 2, 'POINT')}">₹10.00</span>
+                            </td>
+
+                            <td class="text-center">
+                                <form th:action="@{/cart/update}" method="post" class="d-flex justify-content-center">
+                                    <input type="hidden" name="cartItemId" th:value="${item.cartItemId}" />
+                                    <input type="number"
+                                           name="quantity"
+                                           th:value="${item.quantity}"
+                                           min="1"
+                                           max="5"
+                                           class="form-control form-control-sm me-2 text-center"
+                                           style="width: 65px;"
+                                           required />
+                                    <button type="submit" class="btn btn-sm btn-info" title="Update Quantity">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </form>
+                            </td>
+
+                            <td class="text-center fw-bold">
+                                <span th:with="subtotal=${item.product.price.multiply(new java.math.BigDecimal(item.quantity))}"
+                                      th:text="'₹' +${#numbers.formatDecimal(subtotal, 1, 'COMMA', 2, 'POINT')}">₹0.00</span>
+                            </td>
+
+                            <td class="text-center">
+                                <form th:action="@{/cart/remove}" method="post" class="d-inline">
+                                    <input type="hidden" name="cartItemId" th:value="${item.cartItemId}" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove Item">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <form th:action="@{/cart/clear}" method="post" onsubmit="return confirm('Are you sure you want to clear your entire cart?');" class="d-inline">
+                    <button type="submit" class="btn btn-link text-danger p-0">
+                        <i class="fas fa-times-circle me-1"></i> Clear All Items
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card bg-light shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Order Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Items Total:</span>
+                        <span class="fw-bold" th:text="'₹' +${#numbers.formatDecimal(cartTotal, 1, 'COMMA', 2, 'POINT')}">₹0.00</span>
+                    </div>
+<!--                    <div class="d-flex justify-content-between mb-2 border-bottom pb-2">-->
+<!--                        <span>Shipping:</span>-->
+<!--                        <span>$5.00</span>-->
+<!--                    </div>-->
+                    <div class="d-flex justify-content-between pt-2">
+                        <h5 class="mb-0">Grand Total:</h5>
+                        <h5 class="mb-0 text-success"
+                            th:text="'₹' +${#numbers.formatDecimal(cartTotal.add(new java.math.BigDecimal('0.00')), 1, 'COMMA', 2, 'POINT')}">₹0.00</h5>
+                    </div>
+                </div>
+                <div class="card-footer text-end bg-white">
+                    <a th:href="@{/orders/checkout}" class="btn btn-success btn-lg w-100">
+                        <i class="fas fa-lock me-1"></i> Secure Checkout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+</body>
+</html>

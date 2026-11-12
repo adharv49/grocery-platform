@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Orders | GroceryMart</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .card { border: none; border-radius: 12px; }
+
+        /* Custom Status Colors */
+        .status-badge { font-weight: 600; font-size: 0.75rem; letter-spacing: 0.3px; padding: 6px 14px; }
+        .st-placed { background-color: #e7f5ff; color: #1971c2; }
+        .st-scheduled { background-color: #f3f0ff; color: #6741d9; }
+        .st-out-for-delivery { background-color: #fff9db; color: #f08c00; }
+        .st-delivered { background-color: #ebfbee; color: #2b8a3e; }
+        .st-cancelled { background-color: #fff5f5; color: #c92a2a; }
+        .st-cancellation-requested { background-color: #fff4e6; color: #d9480f; }
+
+        .table thead { background-color: #212529; color: white; }
+        .order-id { color: #495057; font-family: monospace; font-size: 1rem; }
+        .btn-action { border-radius: 8px; font-weight: 500; transition: 0.2s; }
+        .table-hover tbody tr:hover { background-color: #f1f3f5; }
+    </style>
+</head>
+<body>
+
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold m-0"><i class="fas fa-history text-primary me-2"></i>My Order History</h2>
+            <p class="text-muted mb-0">Track and manage your grocery deliveries</p>
+        </div>
+        <a th:href="@{/products}" class="btn btn-outline-primary btn-action">
+            <i class="fas fa-plus me-1"></i> New Order
+        </a>
+    </div>
+
+    <div th:if="${orders.isEmpty()}" class="card shadow-sm p-5 text-center">
+        <div class="py-4">
+            <i class="fas fa-shopping-basket fa-4x text-light mb-3"></i>
+            <h4 class="text-dark">No orders yet?</h4>
+            <p class="text-muted">Once you place an order, it will appear here for tracking.</p>
+            <a th:href="@{/products}" class="btn btn-primary px-4 mt-2">Start Shopping</a>
+        </div>
+    </div>
+
+    <div th:if="${!orders.isEmpty()}" class="card shadow-sm overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                <tr>
+                    <th class="ps-4 py-3">Order Details</th>
+                    <th>Total Amount</th>
+                    <th>Status</th>
+                    <th class="text-end pe-4">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="order : ${orders}">
+                    <td class="ps-4">
+                        <div class="fw-bold order-id" th:text="'#' + ${order.orderId}">#101</div>
+                        <div class="text-muted small">
+                            <i class="far fa-calendar-alt me-1"></i>
+                            <span th:text="${order.orderDate}">2025-12-17</span>
+                        </div>
+                    </td>
+
+                    <td>
+                        <div class="fw-bold text-dark"
+                             th:text="'₹' + ${#numbers.formatDecimal(order.totalAmount, 1, 'COMMA', 2, 'POINT')}">₹0.00</div>
+                        <div th:if="${order.payment != null}" class="mt-1">
+                            <span th:if="${order.payment.paymentMethod == 'WALLET'}" class="badge bg-success-subtle text-success border border-success-subtle">
+                                <i class="fas fa-wallet me-1"></i> Paid via Wallet
+                            </span>
+                            <span th:if="${order.payment.paymentMethod == 'COD'}" class="pay-method method-cod">
+                                <i class="fas fa-wallet"></i> COD
+                            </span>
+                            <span th:if="${order.payment.paymentMethod == 'UPI'}" class="pay-method method-online">
+                                <i class="fas fa-mobile-screen"></i> UPI
+                            </span>
+                            <span th:if="${order.payment.paymentMethod == 'CARD'}" class="pay-method method-online">
+                                <i class="fas fa-credit-card"></i> CARD
+                            </span>
+                            <span th:if="${order.payment.paymentStatus.name() == 'REFUNDED'}" class="badge bg-info text-dark">
+                                <i class="fas fa-undo me-1"></i> Refunded to Wallet
+                            </span>
+
+                            <span th:if="${order.payment.paymentStatus.name() == 'FAILED' and order.payment.paymentMethod == 'COD'}" class="badge bg-light text-muted">
+                                Payment Voided
+                            </span>
+                        </div>
+                    </td>
+
+                    <td>
+                            <span class="badge rounded-pill status-badge"
+                                  th:classappend="${'st-' + #strings.toLowerCase(#strings.replace(order.status.name(), '_', '-'))}"
+                                  th:text="${order.status}">PLACED</span>
+                    </td>
+
+                    <td class="text-end pe-4">
+                        <div class="d-flex justify-content-end gap-2">
+
+                            <a th:href="@{/orders/{id}(id=${order.orderId})}"
+                               class="btn btn-sm btn-primary btn-action px-3" title="View Order Details">
+                                <i class="fas fa-eye me-1"></i> Details
+                            </a>
+
+                            <a th:if="${order.status.name() != 'CANCELLED'}"
+                               th:href="@{/orders/{id}/download(id=${order.orderId})}"
+                               class="btn btn-sm btn-outline-danger btn-action" title="Download Invoice">
+                                <i class="fas fa-file-pdf"></i>
+                            </a>
+
+                            <div class="dropdown d-inline"
+                                 th:if="${order.status.name() != 'DELIVERED' and order.status.name() != 'CANCELLED'}">
+                                <button class="btn btn-sm btn-light border btn-action dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                    <li th:if="${order.status.name() == 'PLACED'}">
+                                        <form th:action="@{/orders/cancel}" method="post"
+                                              onsubmit="return confirm('Are you sure you want to cancel this order?');">
+                                            <input type="hidden" name="orderId" th:value="${order.orderId}" />
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="fas fa-trash-alt me-2"></i> Cancel Order
+                                            </button>
+                                        </form>
+                                    </li>
+
+                                    <li th:if="${order.status.name() == 'SCHEDULED' || order.status.name() == 'OUT_FOR_DELIVERY'}">
+                                        <form th:action="@{/orders/request-cancel}" method="post">
+                                            <input type="hidden" name="orderId" th:value="${order.orderId}" />
+                                            <button type="submit" class="dropdown-item text-warning">
+                                                <i class="fas fa-comment-slash me-2"></i> Request Cancellation
+                                            </button>
+                                        </form>
+                                    </li>
+
+                                    <li th:if="${order.status.name() == 'CANCELLATION_REQUESTED'}">
+                                            <span class="dropdown-item-text text-muted small italic">
+                                                <i class="fas fa-hourglass-half me-2"></i> Cancellation Pending...
+                                            </span>
+                                    </li>
+
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" th:href="@{/contact}"><i class="fas fa-question-circle me-2"></i> Need Help?</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

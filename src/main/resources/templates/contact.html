@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Contact Us | GroceryMart</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', sans-serif; }
+
+        /* Hero Header */
+        .contact-hero {
+            background: linear-gradient(135deg, #198754, #146c43);
+            color: white;
+            padding: 80px 0;
+            margin-bottom: -60px;
+        }
+
+        /* Detail Cards */
+        .detail-card {
+            background: white;
+            border: none;
+            border-radius: 15px;
+            padding: 40px 30px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 100%;
+            text-align: center;
+        }
+        .detail-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        .icon-box {
+            width: 70px;
+            height: 70px;
+            background: #eaf5ef;
+            color: #198754;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin: 0 auto 25px;
+        }
+        .social-btn {
+            width: 45px;
+            height: 45px;
+            line-height: 45px;
+            border-radius: 50%;
+            display: inline-block;
+            background: #212529;
+            color: white;
+            margin: 0 5px;
+            transition: 0.3s;
+        }
+        .social-btn:hover { background: #198754; color: white; transform: scale(1.1); }
+
+        /* Operating Hours Section */
+        .hours-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" th:href="@{/}">
+            <i class="fas fa-leaf text-success me-2"></i>GroceryMart
+        </a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" th:href="@{/products}">Products</a>
+            <a class="nav-link" th:href="@{/about}">About</a>
+            <a class="nav-link active" th:href="@{/contact}">Contact</a>
+        </div>
+    </div>
+</nav>
+
+<header class="contact-hero text-center">
+    <div class="container">
+        <h1 class="display-4 fw-bold">Contact Our Team</h1>
+        <p class="lead opacity-75">We are here to ensure your grocery shopping experience is seamless.</p>
+    </div>
+</header>
+
+<div class="container mb-5">
+    <div class="row g-4 justify-content-center">
+        <div class="col-md-4">
+            <div class="detail-card shadow-sm">
+                <div class="icon-box"><i class="fas fa-map-marker-alt"></i></div>
+                <h4 class="fw-bold">Our Headquarters</h4>
+                <p class="text-muted">123 Grocery Lane, Tech City,<br>State - 560001</p>
+                <a href="https://maps.google.com" target="_blank" class="btn btn-sm btn-outline-success rounded-pill px-3">View on Map</a>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="detail-card shadow-sm">
+                <div class="icon-box"><i class="fas fa-phone-alt"></i></div>
+                <h4 class="fw-bold">Call Support</h4>
+                <p class="text-muted">Toll Free: 1800-GROCERY<br>Direct: +1 (555) 123-4567</p>
+                <a href="tel:+15551234567" class="btn btn-sm btn-outline-success rounded-pill px-3">Call Now</a>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="detail-card shadow-sm">
+                <div class="icon-box"><i class="fas fa-envelope-open-text"></i></div>
+                <h4 class="fw-bold">Email Inquiries</h4>
+                <p class="text-muted">support@grocerymart.com<br>info@grocerymart.com</p>
+                <a href="mailto:support@grocerymart.com" class="btn btn-sm btn-outline-success rounded-pill px-3">Send Email</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-lg-6 mx-auto">
+            <div class="hours-section text-center">
+                <h5 class="fw-bold mb-4">Customer Support Hours</h5>
+                <div class="d-flex justify-content-between border-bottom py-2">
+                    <span>Monday - Friday</span>
+                    <span class="fw-bold">8:00 AM - 10:00 PM</span>
+                </div>
+                <div class="d-flex justify-content-between border-bottom py-2">
+                    <span>Saturday</span>
+                    <span class="fw-bold">9:00 AM - 8:00 PM</span>
+                </div>
+                <div class="d-flex justify-content-between py-2 text-success">
+                    <span>Sunday</span>
+                    <span class="fw-bold">Online Only (Chat Support)</span>
+                </div>
+
+                <div class="mt-4 pt-3 border-top">
+                    <p class="small text-muted mb-3">FOLLOW OUR JOURNEY</p>
+                    <a href="#" class="social-btn"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="social-btn"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="social-btn"><i class="fab fa-twitter"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="bg-dark text-white text-center py-4 mt-auto">
+    <p class="mb-0 small opacity-50">© 2026 GroceryMart Delivery Service. All rights reserved.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

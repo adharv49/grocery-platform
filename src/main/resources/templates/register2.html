@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Register</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #fff;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            width: 320px; /* Increased slightly for better spacing */
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        /* Style for Error Messages */
+        .error-alert {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
+            margin-bottom: 15px;
+            font-size: 13px;
+            text-align: center;
+        }
+        form input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box; /* Ensures padding doesn't push width out */
+        }
+        .help-text {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+            display: block;
+        }
+        form button {
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        form button:hover {
+            background-color: #218838;
+        }
+        .login-link {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .login-link a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Register</h1>
+
+    <div class="error-alert" th:if="${error}" th:text="${error}"></div>
+
+    <form th:action="@{/register}" method="post">
+        <input type="text" name="username" placeholder="Username"
+               th:value="${enteredUsername}" required />
+
+        <input type="email" name="email" placeholder="Email"
+               th:value="${enteredEmail}" required />
+        <input type="text" name="address" placeholder="Residential Address" th:value="${enteredAddress}" required />
+        <input type="password" name="password" placeholder="Password"
+               minlength="6" required />
+        <span class="error-text"
+              th:if="${passError}"
+              th:text="${passError}"
+              style="color: red; font-size: 12px; display: block; margin-top: -5px; margin-bottom: 10px;">
+        </span>
+
+        <button type="submit">Register</button>
+    </form>
+
+    <div class="login-link">
+        Already have an account? <a href="/login">Login</a>
+    </div>
+</div>
+</body>
+</html>
